@@ -61,6 +61,17 @@ class VideoRecorder:
         self.frame_width = frame_width
         self.frame_height = frame_height
         
+        # Reset audio frames
+        self.audio_frames = []
+        
+        # Start audio recording first (in separate thread)
+        self.is_recording = True
+        self.audio_thread = threading.Thread(target=self._record_audio)
+        self.audio_thread.start()
+        
+        # Small delay to ensure audio thread is running
+        time.sleep(0.05)
+        
         # Start video recording
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         self.video_writer = cv2.VideoWriter(
@@ -69,11 +80,6 @@ class VideoRecorder:
             self.fps, 
             (frame_width, frame_height)
         )
-        
-        # Start audio recording in separate thread
-        self.is_recording = True
-        self.audio_thread = threading.Thread(target=self._record_audio)
-        self.audio_thread.start()
         
         print(f"🔴 Recording started (with audio)")
     
@@ -189,15 +195,24 @@ class VideoRecorder:
         print(f"Audio saved. Size: {os.path.getsize(output_path)} bytes")
     
     def _merge_audio_video(self, video_path, audio_path, output_path):
-        """Merge audio and video files using moviepy."""
+        """Merge audio and video files using moviepy with proper synchronization."""
         print("Merging audio and video...")
         
         video_clip = VideoFileClip(video_path)
-        print(f"Video loaded: {video_clip.duration}s, {video_clip.fps} fps")
+        print(f"Video loaded: {video_clip.duration:.2f}s, {video_clip.fps} fps")
         
         audio_clip = AudioFileClip(audio_path)
-        print(f"Audio loaded: {audio_clip.duration}s")
+        print(f"Audio loaded: {audio_clip.duration:.2f}s")
         
+        # Synchronize durations - trim to the shorter duration
+        min_duration = min(video_clip.duration, audio_clip.duration)
+        print(f"Synchronizing to {min_duration:.2f}s")
+        
+        # Trim both to exact same duration
+        video_clip = video_clip.subclipped(0, min_duration)
+        audio_clip = audio_clip.subclipped(0, min_duration)
+        
+        # Combine video with audio
         final_clip = video_clip.with_audio(audio_clip)
         print(f"Writing merged video to {output_path}...")
         

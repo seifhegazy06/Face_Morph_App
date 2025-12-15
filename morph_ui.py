@@ -141,7 +141,6 @@ class MorphUI:
         Args:
             frame: Frame to draw on (modified in-place)
         """
-        cv2.circle(frame, (self.frame_width - 30, 30), 10, (0, 0, 255), -1)
         cv2.putText(frame, "REC", (self.frame_width - 70, 40), 
                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
     
